@@ -1,5 +1,6 @@
 # windows-ppfd
-popup current folder
+popup the current folder.
+
 [more](http://utb.cs.land.to/ppfd/index.html)
 
 ## build
