@@ -17,6 +17,7 @@ uses
 const AW_ACTIVATE = $20000;
 const AW_BLEND = $80000;
 const INTERRUPTED_LISTUP = 'interrupted listup';
+const BORDER_WIDTH = 1;
 
 type
   TItem = class(TObject)
@@ -368,7 +369,7 @@ begin
   Image1.Picture.Graphic.Width := Root.BoundsWidth;
   Image1.Picture.Graphic.Height := Root.BoundsHeight;
   W := Image1.Width;
-  H := Min(Image1.Height + PADDING, Screen.Height);
+  H := Min(Image1.Height + BORDER_WIDTH * 2, Screen.Height);
   for I := 0 to Count - 1 do
     DrawItem(Items[I]);
 
