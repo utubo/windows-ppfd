@@ -127,14 +127,6 @@ implementation
 ///////////////////////////////////////
 // ユーティリティ
 ///////////////////////////////////////
-function Min(A:Integer; B:Integer): Integer;
-begin
-  if A < B then
-    Result := A
-  else
-    Result := B;
-end;
-
 function StrngToColor(s:String; Default:TColor): TColor;
 var l: Integer;
 begin
@@ -482,7 +474,7 @@ begin
         begin
           Item.IsDir := (wfd.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY = FILE_ATTRIBUTE_DIRECTORY);
           iconList := SHGetFileInfoW(
-            PChar(Item.Filename),
+            PChar(Item.FileName),
             0,
             shfinfo,
             SizeOf(shfinfo),
