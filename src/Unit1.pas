@@ -60,40 +60,38 @@ end;
 type
   TMainForm = class(TForm)
     ApplicationEvents1: TApplicationEvents;
-    Timer1: TTimer;
     Image1: TImage;
     ScrollBox1: TScrollBox;
+    Timer1: TTimer;
     procedure ApplicationEvents1Deactivate(Sender: TObject);
-    procedure Timer1Timer(Sender: TObject);
-    procedure Image1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure ApplicationEvents1Message(var Msg: tagMSG; var Handled: Boolean);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure ApplicationEvents1Message(var Msg: tagMSG;
-      var Handled: Boolean);
-    procedure Image1MouseUp(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
+    procedure Image1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure Image1MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure Timer1Timer(Sender: TObject);
   private
     { Private 宣言 }
-    FSelectedIndex: Integer;
     CaletIndex : Integer;
-    ParentForm: TMainForm;
     ChildForm: TMainForm;
+    FSelectedIndex: Integer;
     LastMousePoint: TPoint;
+    ParentForm: TMainForm;
     function GetCount: Integer;
     function GetItem(Index: Integer): TItem;
-    function GetSelectedItem: TItem;
     function GetSElectedIndex: Integer;
+    function GetSelectedItem: TItem;
     function Select(Index: Integer): Boolean;
+    procedure DrawItem(Item: TItem);
+    procedure Execute();
+    procedure HideChildForms;
+    procedure Popup(LT: TPoint; RB: TPoint);
+    procedure ResetTimer(ReselectParent: boolean = False);
     procedure SetItem(Index: Integer; Value: TItem);
     procedure SetSelectedItem(Value: TItem);
-    procedure Execute();
-    procedure DrawItem(Item: TItem);
-    procedure Popup(LT: TPoint; RB: TPoint);
-    procedure HideChildForms;
-    procedure ResetTimer(ReselectParent: boolean = False);
-    property Items[Index: Integer]: TItem read GetItem write SetItem;
     property Count: Integer read GetCount;
-    property SelectedItem: TItem read GetSelectedItem write SetSelectedItem;
+    property Items[Index: Integer]: TItem read GetItem write SetItem;
     property SelectedIndex: Integer read GetSelectedIndex;
+    property SelectedItem: TItem read GetSelectedItem write SetSelectedItem;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
   public
@@ -127,61 +125,57 @@ implementation
 ///////////////////////////////////////
 // ユーティリティ
 ///////////////////////////////////////
-function StrngToColor(s:String; Default:TColor): TColor;
-var l: Integer;
+function StrngToColor(S:string; Default:TColor): TColor;
 begin
   Result := Default;
-  if (s <> '') and (s <> 'default') then
+  if (S <> '') and (S <> 'default') then
   try
-    if s[1] = '#' then
+    if S[1] = '#' then
     begin
-      l := Length(s);
-      if l = 4 then
-        Result := Graphics.StringToColor('$00' + s[4] + s[4] + s[3] + s[3] + s[2] + s[2])
+      if Length(S) = 4 then
+        Result := Graphics.StringToColor('$00' + S[4] + S[4] + S[3] + S[3] + S[2] + S[2])
       else
-        Result := Graphics.StringToColor('$00' + s[6] + s[7] + s[4] + s[5] + s[2] + s[3]);
+        Result := Graphics.StringToColor('$00' + S[6] + S[7] + S[4] + S[5] + S[2] + S[3]);
     end else
-      Result := Graphics.StringToColor('cl' + s);
+      Result := Graphics.StringToColor('cl' + S);
   finally
   end;
 end;
 
 function TrimRightW(W: WideString): WideString;
-var p: Integer;
 begin
   Result := TrimRight(W);
-  p := Pos(#0, Result);
-  if p <> 0 then
+  if Pos(#0, Result) <> 0 then
     Result := Copy(Result, 1, Pos(#0, Result) - 1);
 end;
 
 function GetCurrentDirW: WideString;
-var w: WideString;
+var W: WideString;
 begin
-  SetLength(w, MAX_PATH);
-  GetCurrentDirectoryW(MAX_PATH, PWideChar(w));
-  Result := TrimRightW(w);
+  SetLength(W, MAX_PATH);
+  GetCurrentDirectoryW(MAX_PATH, PWideChar(W));
+  Result := TrimRightW(W);
 end;
 
 function GetDpiZoom(ACanvas: TCanvas): Extended;
 var
-  b, h: Integer;
-  r: TRect;
+  FontSizeBackup, PxSize: Integer;
+  R: TRect;
 begin
-  b := ACanvas.Font.Size;
+  FontSizeBackup := ACanvas.Font.Size;
   try
     ACanvas.Font.Size := 9;
-    r := Rect(0, 0, 100, 100);
-    h := DrawText(
+    R := Rect(0, 0, 100, 100);
+    PxSize := DrawText(
       ACanvas.Handle,
       PChar('Aj'),
       -1,
-      r,
+      R,
       DT_WORDBREAK or DT_CALCRECT or DT_NOPREFIX
   );
-    Result := h / 16;
+    Result := PxSize / 16;
   finally
-    ACanvas.Font.size := b;
+    ACanvas.Font.size := FontSizeBackup;
   end;
 end;
 
@@ -270,11 +264,11 @@ end;
 
 procedure TMainForm.Start;
 var
-  i: Integer;
-  v, opt: String;
-  p: TPoint;
+  I: Integer;
+  V, Opt: string;
+  P: TPoint;
   NCM: TNonClientMetrics;
-  z: Extended;
+  Zoom: Extended;
 begin
   BusyCount := 0;
   // コントロール押しながら起動
@@ -296,47 +290,47 @@ begin
   ShouldOpenShellLink := true;
   ViMode := false;
   Prefix := ';;';
-  GetCursorPos(p);
+  GetCursorPos(P);
   NCM.cbSize := SizeOf (NCM);
   SystemParametersInfo (SPI_GETNONCLIENTMETRICS, 0, @NCM, 0);
   Font.Name := NCM.lfMenuFont.lfFaceName;
   // パラメータ受付
-  For i := 1 to ParamCount do
+  For I := 1 to ParamCount do
   begin
-    v := ParamStr(i);
+    V := ParamStr(I);
     // 単独オプション
-    if v = '/s' then
+    if V = '/S' then
       ShouldOpenShellLink := false
-    else if v = '/vi' then
+    else if V = '/vi' then
       ViMode := true
     // パラメータ付きオプション
-    else if Pos(v, ' /x /y /hifg /hibg /fg /bg /maxcount /prefix ') <> 0 then
-      opt := v
-    else if opt = '/x' then
-      p.x := (Screen.Width + StrToInt(v)) mod Screen.Width
-    else if opt = '/y' then
-      p.y := (Screen.Height + StrToInt(v)) mod Screen.Height
-    else if opt = '/hifg' then
-      Hifg := StrngToColor(v, clHighlightText)
-    else if opt = '/hibg' then
-      Hibg := StrngToColor(v, clHighlight)
-    else if opt = '/fg' then
-      Fg := StrngToColor(v, clHighlightText)
-    else if opt = '/bg' then
-      Bg := StrngToColor(v, clHighlight)
-    else if opt = '/maxcount' then
-      Maxcount := StrToInt(v)
-    else if opt = '/prefix' then
-      Prefix := v
+    else if Pos(V, ' /X /Y /hifg /hibg /fg /bg /maxcount /prefix ') <> 0 then
+      Opt := V
+    else if Opt = '/X' then
+      P.X := (Screen.Width + StrToInt(V)) mod Screen.Width
+    else if Opt = '/Y' then
+      P.Y := (Screen.Height + StrToInt(V)) mod Screen.Height
+    else if Opt = '/hifg' then
+      Hifg := StrngToColor(V, clHighlightText)
+    else if Opt = '/hibg' then
+      Hibg := StrngToColor(V, clHighlight)
+    else if Opt = '/fg' then
+      Fg := StrngToColor(V, clHighlightText)
+    else if Opt = '/bg' then
+      Bg := StrngToColor(V, clHighlight)
+    else if Opt = '/maxcount' then
+      Maxcount := StrToInt(V)
+    else if Opt = '/prefix' then
+      Prefix := V
     ;
   end;
 
   // 高DIP対応
-  z := GetDpiZoom(Canvas);
-  ICON_SIZE := Ceil(16 * z);
-  ITEM_HEIGHT := Ceil(20 * z);
-  TEXT_LEFT := Ceil(24 * z);
-  MAX_WIDTH := Ceil(300 * z);
+  Zoom := GetDpiZoom(Canvas);
+  ICON_SIZE := Ceil(16 * Zoom);
+  ITEM_HEIGHT := Ceil(20 * Zoom);
+  TEXT_LEFT := Ceil(24 * Zoom);
+  MAX_WIDTH := Ceil(300 * Zoom);
 
   // 準備
   Width := 1; // Widthを0にすると影が付かない
@@ -346,7 +340,7 @@ begin
   Root := TItem.Create();
   Root.SetupItems(GetCurrentDirW);
   // 表示
-  Popup(p, p);
+  Popup(P, P);
 
   // 表示準備してる間に他のアプリがアクティブになってたら終了させる
   if Focused and (FindControl(GetForegroundWindow) = nil) then
@@ -355,8 +349,8 @@ end;
 
 procedure TMainForm.Popup(LT: TPoint; RB: TPoint);
 var
-  i, l, t, w, h: Integer;
-  flugs: Cardinal;
+  I, L, T, W, H: Integer;
+  SwpFlags: Cardinal;
 begin
   // 初期化
   SelectedItem := nil;
@@ -371,39 +365,39 @@ begin
   Image1.Canvas.Pixels[0,0] := 0;
   Image1.Picture.Graphic.Width := Root.BoundsWidth;
   Image1.Picture.Graphic.Height := Root.BoundsHeight;
-  w := Image1.Width;
-  h := Min(Image1.Height + 2, Screen.Height);
-  for i := 0 to Count - 1 do
-    DrawItem(Items[i]);
+  W := Image1.Width;
+  H := Min(Image1.Height + 2, Screen.Height);
+  for I := 0 to Count - 1 do
+    DrawItem(Items[I]);
 
   // 位置調整
   DoubleBuffered := true;
   ScrollBox1.DoubleBuffered := true;
-  if (LT.Y + h) < Screen.Height then
-    t := LT.Y // 収まるなら下へ表示
+  if (LT.Y + H) < Screen.Height then
+    T := LT.Y // 収まるなら下へ表示
   else
-    t := RB.Y - h; // 収まらないなら上へ表示
-  if t < 0 then
-    t := 0;
-  if t + h > Screen.Height then
-    h := Screen.Height - t;
-  ScrollBox1.AutoScroll := Image1.Height > h;
+    T := RB.Y - H; // 収まらないなら上へ表示
+  if T < 0 then
+    T := 0;
+  if T + H > Screen.Height then
+    H := Screen.Height - T;
+  ScrollBox1.AutoScroll := Image1.Height > H;
   if ScrollBox1.AutoScroll then
-    w := w + GetSystemMetrics(SM_CXVSCROLL);
-  if RB.X + w < Screen.Width then
-    l := RB.X
+    W := W + GetSystemMetrics(SM_CXVSCROLL);
+  if RB.X + W < Screen.Width then
+    L := RB.X
   else
-    l := LT.X - w;
-  if l < 0 then
-    l := 0;
+    L := LT.X - W;
+  if L < 0 then
+    L := 0;
 
   // 位置サイズ確定と再描画
-  SetWindowPos(Handle, HWND_TOPMOST, l, t, w, h, SWP_NOACTIVATE);
+  SetWindowPos(Handle, HWND_TOPMOST, L, T, W, H, SWP_NOACTIVATE);
   AlphaBlend := false;
   Refresh;
   // 表示
-  flugs := SWP_SHOWWINDOW or SWP_NOSIZE or SWP_NOMOVE or SWP_NOZORDER;
-  SetWindowPos(Handle, 0, 0, 0, 0, 0, flugs);
+  SwpFlags := SWP_SHOWWINDOW or SWP_NOSIZE or SWP_NOMOVE or SWP_NOZORDER;
+  SetWindowPos(Handle, 0, 0, 0, 0, 0, SwpFlags);
   Visible := true;
 end;
 
@@ -423,69 +417,67 @@ end;
 // ファイル検索
 procedure TItem.SetupItems(Dir: WideString; Filename: WideString = '*.*');
 var
-  currdir: WideString;
-  hFile : THandle;
-  wfd : TWin32FindDataW;
-  shfinfo :TSHFileinfoW;
-  iconList: Cardinal;
-  i, maxWidth: Integer;
+  CurrDir: WideString;
+  FileHandle : THandle;
+  WFD : TWin32FindDataW;
+  FileInfo :TSHFileinfoW;
+  IconList: Cardinal;
+  I, maxWidth: Integer;
   Item: TItem;
   textRect: TRect;
-  _Root: TItem;
   PrefixPos: Integer;
 begin
-  _Root := Self;
-  _Root.IsListuped := False;
+  Self.IsListuped := False;
   if not SetCurrentDirectoryW(PWideChar(Dir)) then
   begin
-    _Root.IsListuped := True;
+    Self.IsListuped := True;
     exit;
   end;
   try
     Inc(BusyCount);
     StopFlag := false;
     maxWidth := 0;
-    currdir := GetCurrentDirW;
-    hFile := FindFirstFileW(PWideChar(Filename), wfd);
-    if hFile <> INVALID_HANDLE_VALUE then
+    CurrDir := GetCurrentDirW;
+    FileHandle := FindFirstFileW(PWideChar(Filename), WFD);
+    if FileHandle <> INVALID_HANDLE_VALUE then
   try
-    i := 0;
+    I := 0;
     repeat
       Application.ProcessMessages;
       if StopFlag then
         raise Exception.Create(INTERRUPTED_LISTUP);
-      if (wfd.dwFileAttributes and FILE_ATTRIBUTE_SYSTEM = FILE_ATTRIBUTE_SYSTEM) then
+      if (WFD.dwFileAttributes and FILE_ATTRIBUTE_SYSTEM = FILE_ATTRIBUTE_SYSTEM) then
         continue;
-      if wfd.cFilename = WideString('..') then
+      if WFD.cFilename = WideString('..') then
         continue;
-      if (wfd.cFileName = WideString('.')) then
+      if (WFD.cFileName = WideString('.')) then
         continue;
       begin
-        if Maxcount <= _Root.Count then break;
+        if Maxcount <= Self.Count then break;
         // ファイル情報取得
         Item := TItem.Create();
-        Item.Index := i;
-        Item.Top := i * ITEM_HEIGHT;
+        Item.Index := I;
+        Item.Top := I * ITEM_HEIGHT;
         Item.Bottom := Item.Top + ITEM_HEIGHT;
         Item.Dir := dir;
-        Item.Filename := WideString(wfd.cFilename);
+        Item.Filename := WideString(WFD.cFilename);
         Item.Enabled := (ExtractFileExt(Item.Filename) <> '.___');
         if Item.Enabled then
         begin
-          Item.IsDir := (wfd.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY = FILE_ATTRIBUTE_DIRECTORY);
-          iconList := SHGetFileInfoW(
+          Item.IsDir := (WFD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY = FILE_ATTRIBUTE_DIRECTORY);
+          IconList := SHGetFileInfoW(
             PChar(Item.FileName),
             0,
-            shfinfo,
-            SizeOf(shfinfo),
+            FileInfo,
+            SizeOf(FileInfo),
             SHGFI_DISPLAYNAME OR SHGFI_ICON OR SHGFI_SMALLICON OR SHGFI_SYSICONINDEX
           );
-          Item.CaptionW := WideString(shfInfo.szDisplayName);
+          Item.CaptionW := WideString(FileInfo.szDisplayName);
           PrefixPos := Pos(Prefix, Item.CaptionW);
           if PrefixPos <> 0 then
             Item.CaptionW := Copy(Item.CaptionW, PrefixPos + Length(Prefix), Length(Item.CaptionW));
-          Item.Icon := ImageList_GetIcon(iconList, shfInfo.iIcon, ILD_TRANSPARENT);
-          ImageList_Destroy(iconList); // 後始末
+          Item.Icon := ImageList_GetIcon(IconList, FileInfo.iIcon, ILD_TRANSPARENT);
+          ImageList_Destroy(IconList); // 後始末
           // フォルダのショートカットならフォルダ扱いにする。
           if ShouldOpenShellLink and (not Item.IsDir) and Item.IsLnk then
             SetupShellLinkInfo(Item);
@@ -506,42 +498,42 @@ begin
         end;
         if maxWidth < Item.TextWidth then
           maxWidth := Item.TextWidth;
-        SetLength(_Root.Items, i + 1);
-        Items[i] := Item;
-        inc(i);
+        SetLength(Self.Items, I + 1);
+        Items[I] := Item;
+        inc(I);
       end;
-    until FindNextFileW(hFile, wfd) = False;
-    _Root.IsListuped := True;
+    until FindNextFileW(FileHandle, WFD) = False;
+    Self.IsListuped := True;
   finally
-    windows.FindClose(hFile);
-    SetCurrentDirectoryW(PWideChar(currdir));
+    windows.FindClose(FileHandle);
+    SetCurrentDirectoryW(PWideChar(CurrDir));
   end;
   finally
     Dec(BusyCount);
   end;
 
   // 描画範囲
-  _Root.BoundsWidth := Min(maxWidth + TEXT_LEFT * 2, MAX_WIDTH);
-  _Root.BoundsHeight := _Root.Count * ITEM_HEIGHT;
+  Self.BoundsWidth := Min(maxWidth + TEXT_LEFT * 2, MAX_WIDTH);
+  Self.BoundsHeight := Self.Count * ITEM_HEIGHT;
 end;
 
 procedure TItem.SetupShellLinkInfo(Item: TItem);
 var
   Win32FindDataW: TWin32FindDataW;
   Win32FindData: ^TWin32FindData;
-  w: WideString;
+  W: WideString;
   ShellLink: IShellLinkW;
 begin
   ShellLink := CreateComObject(CLSID_ShellLink) as IShellLinkW;
   if not Succeeded((ShellLink as IPersistFile).Load(PWChar(Item.FullPath), STGM_READ)) then
     exit;
-  SetLength(w, MAX_PATH);
+  SetLength(W, MAX_PATH);
   Win32FindData := @Win32FindDataW;
   ShellLink.Resolve(0, SLR_NO_UI);
-  ShellLink.GetPath(PWideChar(w), MAX_PATH, Win32FindData^, SLGP_RAWPATH);
+  ShellLink.GetPath(PWideChar(W), MAX_PATH, Win32FindData^, SLGP_RAWPATH);
   if (Win32FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> FILE_ATTRIBUTE_DIRECTORY) then
     exit;
-  Item.LnkPath := TrimRightW(w);
+  Item.LnkPath := TrimRightW(W);
   Item.IsDir := true;
 end;
 
@@ -710,27 +702,27 @@ end;
 // 実行
 procedure TMainForm.Execute();
 var
-  e: Integer;
-  s: String;
-  w: PWideChar;
+  E: Integer;
+  S: string;
+  W: PWideChar;
 begin
   if SelectedItem = nil then
     exit;
   if ((GetAsyncKeyState(VK_RBUTTON) and 1) = 1) or (GetKeyState(VK_SHIFT) < 0) or (GetKeyState(VK_CONTROL) < 0) then
   begin
-    w := PWideChar('/select,' + SelectedItem.FullPath);
-    ShellExecuteW(0, nil, 'explorer.exe', w, nil, SW_SHOWNORMAL)
+    W := PWideChar('/select,' + SelectedItem.FullPath);
+    ShellExecuteW(0, nil, 'explorer.exe', W, nil, SW_SHOWNORMAL)
   end else
   begin
     SetLastError(0);
     ShellExecuteW(0, '', PWideChar(SelectedItem.Filename), nil, PWideChar(SelectedItem.Dir), SW_SHOWNORMAL);
-    e := GetLastError;
-    if (e <> 0) and (e <> E_PENDING) then
+    E := GetLastError;
+    if (E <> 0) and (E <> E_PENDING) then
     begin
-      if SelectedItem.IsLnk and (e = ERROR_CANCELLED) then
-        e := ERROR_PATH_NOT_FOUND;
-      s := SysErrorMessage(e);
-      MessageBox(Handle, PChar(s), '', MB_ICONWARNING or MB_OK);
+      if SelectedItem.IsLnk and (E = ERROR_CANCELLED) then
+        E := ERROR_PATH_NOT_FOUND;
+      S := SysErrorMessage(E);
+      MessageBox(Handle, PChar(S), '', MB_ICONWARNING or MB_OK);
       exit;
     end;
   end;
@@ -739,13 +731,13 @@ end;
 
 // マウス操作
 procedure TMainForm.Image1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
-var p: TPoint;
+var P: TPoint;
 begin
-  GetCursorPos(p);
-  if (p.X = LastMousePoint.X) and (p.Y = LastMousePoint.Y) then
+  GetCursorPos(P);
+  if (P.X = LastMousePoint.X) and (P.Y = LastMousePoint.Y) then
    exit;
-  LastMousePoint.X := p.X;
-  LastMousePoint.Y := p.Y;
+  LastMousePoint.X := P.X;
+  LastMousePoint.Y := P.Y;
   if Select(Y div ITEM_HEIGHT) then
     ResetTimer(true);
 end;
@@ -773,25 +765,25 @@ end;
 
 // キーボード操作
 procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-function IsInRange(i: Integer): Boolean;
+function IsInRange(I: Integer): Boolean;
 begin
-  Result := (0 <= i) and (i < Count);
+  Result := (0 <= I) and (I < Count);
 end;
 var
-  i, j, d: Integer;
-  k: Word;
+  I, J, D: Integer;
+  K: Word;
 
 begin
-  k := Key;
+  K := Key;
   if (ssAlt in Shift) or ViMode and (Shift = []) then
   case Key of
-    ord('H'): k := VK_LEFT;
-    ord('J'): k := VK_DOWN;
-    ord('K'): k := VK_UP;
-    ord('L'): k := VK_RIGHT;
+    ord('H'): K := VK_LEFT;
+    ord('J'): K := VK_DOWN;
+    ord('K'): K := VK_UP;
+    ord('L'): K := VK_RIGHT;
   end;
-  d := 0; // 上下キーフラグ
-  case k of
+  D := 0; // 上下キーフラグ
+  case K of
      VK_RIGHT, VK_SPACE:
       // ディレクトリなら子を開く
       if (SelectedItem <> nil) and SelectedItem.IsDir then
@@ -807,48 +799,48 @@ begin
       if ParentForm <> nil then
         ParentForm.HideChildForms
       else if Self = MainForm then
-        d := - Count;
+        D := - Count;
     VK_ESCAPE: Application.Terminate;
     VK_RETURN: Execute;
-    VK_UP: d := -1;
-    VK_DOWN: d := 1;
+    VK_UP: D := -1;
+    VK_DOWN: D := 1;
     ord('0')..ord('9'), ord('@')..ord('Z'):
       begin
-        i := SelectedIndex;
-        if not IsInRange(i) then
-          i := 0;
-        for j := Count downto 1 do
+        I := SelectedIndex;
+        if not IsInRange(I) then
+          I := 0;
+        for J := Count downto 1 do
         begin
-          i := (i + 1) mod Count;
-          if i = SelectedIndex then
+          I := (I + 1) mod Count;
+          if I = SelectedIndex then
             exit;
-          if not Items[i].Enabled then
+          if not Items[I].Enabled then
             continue;
           if
-            (UpperCase(Copy(Items[i].CaptionW, 1, 1)) = char(Key)) or
-            (UpperCase(Copy(Items[i].Filename, 1, 1)) = char(Key))
+            (UpperCase(Copy(Items[I].CaptionW, 1, 1)) = char(Key)) or
+            (UpperCase(Copy(Items[I].Filename, 1, 1)) = char(Key))
           then
           begin
-            Select(i);
+            Select(I);
             exit;
           end;
         end;
       end;
   end;
   // 上下キー
-  if d = 0 then
+  if D = 0 then
     exit; // 上下キー以外はここでexit
-  if (SelectedIndex = -1) and (d <0) then
-    i := Count
+  if (SelectedIndex = -1) and (D <0) then
+    I := Count
   else
-    i := SelectedIndex;
+    I := SelectedIndex;
   // セパレータはスキップする
   repeat
-    i := i + d;
-  until (not IsInRange(i)) or Items[i].Enabled;
-  if IsInRange(i) then
+    I := I + D;
+  until (not IsInRange(I)) or Items[I].Enabled;
+  if IsInRange(I) then
   begin
-    CaletIndex := i;
+    CaletIndex := I;
     Select(CaletIndex);
   end;
 end;
