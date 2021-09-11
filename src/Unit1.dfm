@@ -1,0 +1,59 @@
+object MainForm: TMainForm
+  Left = 1307
+  Top = 897
+  AlphaBlend = True
+  AlphaBlendValue = 0
+  BorderStyle = bsNone
+  ClientHeight = 29
+  ClientWidth = 128
+  Color = clBtnShadow
+  Font.Charset = SHIFTJIS_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  FormStyle = fsStayOnTop
+  OldCreateOrder = False
+  OnKeyDown = FormKeyDown
+  PixelsPerInch = 96
+  TextHeight = 14
+  object ScrollBox1: TScrollBox
+    Left = 0
+    Top = 0
+    Width = 128
+    Height = 29
+    HorzScrollBar.Color = clMenuText
+    HorzScrollBar.ParentColor = False
+    HorzScrollBar.Visible = False
+    VertScrollBar.Smooth = True
+    VertScrollBar.ThumbSize = 20
+    VertScrollBar.Tracking = True
+    Align = alClient
+    BevelInner = bvNone
+    BevelOuter = bvRaised
+    BevelKind = bkFlat
+    BorderStyle = bsNone
+    Color = clMenu
+    ParentColor = False
+    TabOrder = 0
+    object Image1: TImage
+      Left = 0
+      Top = 0
+      Width = 105
+      Height = 20
+      AutoSize = True
+      OnMouseMove = Image1MouseMove
+      OnMouseUp = Image1MouseUp
+    end
+  end
+  object ApplicationEvents1: TApplicationEvents
+    OnDeactivate = ApplicationEvents1Deactivate
+    OnMessage = ApplicationEvents1Message
+  end
+  object Timer1: TTimer
+    Enabled = False
+    Interval = 200
+    OnTimer = Timer1Timer
+    Left = 32
+  end
+end
