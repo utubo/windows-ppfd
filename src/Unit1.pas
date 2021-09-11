@@ -117,6 +117,7 @@ var
   ITEM_HEIGHT: Integer;
   TEXT_LEFT: Integer;
   MAX_WIDTH: Integer;
+  PADDING: Integer;
 
 implementation
 
@@ -328,7 +329,8 @@ begin
   // 高DIP対応
   Zoom := GetDpiZoom(Canvas);
   ICON_SIZE := Ceil(16 * Zoom);
-  ITEM_HEIGHT := Ceil(20 * Zoom);
+  PADDING := Ceil(2 * Zoom);
+  ITEM_HEIGHT := ICON_SIZE + PADDING * 2;
   TEXT_LEFT := Ceil(24 * Zoom);
   MAX_WIDTH := Ceil(300 * Zoom);
 
@@ -362,11 +364,11 @@ begin
   if ParentForm <> nil then
     Font := ParentForm.Font;
   Image1.Canvas.Font := Font;
-  Image1.Canvas.Pixels[0,0] := 0;
+  Image1.Canvas.Pixels[0, 0] := 0;
   Image1.Picture.Graphic.Width := Root.BoundsWidth;
   Image1.Picture.Graphic.Height := Root.BoundsHeight;
   W := Image1.Width;
-  H := Min(Image1.Height + 2, Screen.Height);
+  H := Min(Image1.Height + PADDING, Screen.Height);
   for I := 0 to Count - 1 do
     DrawItem(Items[I]);
 
@@ -494,7 +496,7 @@ begin
         end else
         begin
           // セパレータ
-          Item.TextWidth := 50;
+          Item.TextWidth := 50; // 最小幅
         end;
         if maxWidth < Item.TextWidth then
           maxWidth := Item.TextWidth;
@@ -573,8 +575,8 @@ begin
 
   DrawIconEx(
     ACanvas.Handle,
-    ARect.Left + 2,
-    ARect.Top + 2,
+    ARect.Left + PADDING,
+    ARect.Top + PADDING,
     Item.Icon,
     ICON_SIZE,
     ICON_SIZE,
@@ -584,7 +586,7 @@ begin
   );
 
   // 文字
-  TextRect := Rect(ARect.Left + TEXT_LEFT, ARect.Top, ARect.Right - 2, ARect.Bottom);
+  TextRect := Rect(ARect.Left + TEXT_LEFT, ARect.Top, ARect.Right - PADDING, ARect.Bottom);
   if Item.IsDir then
     TextRect.Right := Arect.Right - TEXT_LEFT + 3;
   DrawTextW(ACanvas.Handle,
@@ -597,9 +599,9 @@ begin
   // ディレクトリ
   if Item.IsDir then
   begin
-    ACanvas.PenPos := Point(ARect.Right - 17, Middle -5);
-    ACanvas.LineTo(ARect.Right - 12, Middle);
-    ACanvas.LineTo(ARect.Right - 18, Middle + 6);
+    ACanvas.PenPos := Point(ARect.Right - PADDING - 10 - 5, Middle - 5);
+    ACanvas.LineTo(ARect.Right - PADDING - 10, Middle);
+    ACanvas.LineTo(ARect.Right - PADDING - 10 - 6, Middle + 6);
   end;
 end;
 
@@ -772,7 +774,6 @@ end;
 var
   I, J, D: Integer;
   K: Word;
-
 begin
   K := Key;
   if (ssAlt in Shift) or ViMode and (Shift = []) then
