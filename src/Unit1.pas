@@ -301,16 +301,16 @@ begin
   begin
     V := ParamStr(I);
     // 単独オプション
-    if V = '/S' then
+    if V = '/s' then
       ShouldOpenShellLink := false
     else if V = '/vi' then
       ViMode := true
     // パラメータ付きオプション
-    else if Pos(V, ' /X /Y /hifg /hibg /fg /bg /maxcount /prefix ') <> 0 then
+    else if Pos(V, ' /x /y /hifg /hibg /fg /bg /maxcount /prefix ') <> 0 then
       Opt := V
-    else if Opt = '/X' then
+    else if Opt = '/x' then
       P.X := (Screen.Width + StrToInt(V)) mod Screen.Width
-    else if Opt = '/Y' then
+    else if Opt = '/y' then
       P.Y := (Screen.Height + StrToInt(V)) mod Screen.Height
     else if Opt = '/hifg' then
       Hifg := StrngToColor(V, clHighlightText)
@@ -625,10 +625,8 @@ begin
   StopFlag := true;
   SelectedItem := Items[Index];
   DrawItem(SelectedItem);
-  if SelectedItem.Top < ScrollBox1.VertScrollBar.Position then
-    ScrollBox1.VertScrollBar.Position := SelectedItem.Top;
-  if ScrollBox1.VertScrollBar.Position < (SelectedItem.Bottom - ScrollBox1.ClientHeight) then
-    ScrollBox1.VertScrollBar.Position := SelectedItem.Bottom - ScrollBox1.ClientHeight;
+  ScrollBox1.VertScrollBar.Position := Min(ScrollBox1.VertScrollBar.Position, SelectedItem.Top);
+  ScrollBox1.VertScrollBar.Position := Max(ScrollBox1.VertScrollBar.Position, SelectedItem.Bottom - ScrollBox1.ClientHeight);
   if SelectedItem.TextWidth > (Width - TEXT_LEFT * 2) then
   begin
     HintWindowClass := THintWindowW;
