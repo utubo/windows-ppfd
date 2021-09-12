@@ -140,7 +140,8 @@ begin
         Result := Graphics.StringToColor('$00' + S[6] + S[7] + S[4] + S[5] + S[2] + S[3]);
     end else
       Result := Graphics.StringToColor('cl' + S);
-  finally
+  except
+    // NOP
   end;
 end;
 
@@ -174,7 +175,7 @@ begin
       -1,
       R,
       DT_WORDBREAK or DT_CALCRECT or DT_NOPREFIX
-  );
+    );
     Result := PxSize / 16;
   finally
     ACanvas.Font.size := FontSizeBackup;
@@ -196,7 +197,6 @@ function TItem.IsLnk;
 begin
   Result := Copy(Filename, Length(Filename) - 3, 4) = '.lnk';
 end;
-
 
 ///////////////////////////////////////
 // THintWindowW
