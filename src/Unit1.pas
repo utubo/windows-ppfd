@@ -18,6 +18,7 @@ const AW_ACTIVATE = $20000;
 const AW_BLEND = $80000;
 const INTERRUPTED_LISTUP = 'interrupted listup';
 const BORDER_WIDTH = 1;
+const SLR_NOSEARCH = $10;
 
 type
   TItem = class(TObject)
@@ -72,7 +73,6 @@ type
     procedure Timer1Timer(Sender: TObject);
   private
     { Private 宣言 }
-    CaletIndex : Integer;
     ChildForm: TMainForm;
     FSelectedIndex: Integer;
     LastMousePoint: TPoint;
@@ -357,7 +357,6 @@ var
 begin
   // 初期化
   SelectedItem := nil;
-  CaletIndex := -1;
   LastMousePoint := Point(-1, -1);
   ScrollBox1.AutoScroll := false;
 
@@ -403,7 +402,6 @@ begin
   SetWindowPos(Handle, 0, 0, 0, 0, 0, SwpFlags);
   Visible := true;
 end;
-
 
 procedure TMainForm.HideChildForms;
 begin
@@ -532,7 +530,8 @@ begin
     exit;
   SetLength(W, MAX_PATH);
   Win32FindData := @Win32FindDataW;
-  ShellLink.Resolve(0, SLR_NO_UI);
+  if ShellLink.Resolve(0, SLR_NO_UI + SLR_NOUPDATE + SLR_NOSEARCH) <> S_OK then
+    exit;
   ShellLink.GetPath(PWideChar(W), MAX_PATH, Win32FindData^, SLGP_RAWPATH);
   if (Win32FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> FILE_ATTRIBUTE_DIRECTORY) then
     exit;
@@ -782,18 +781,16 @@ begin
     ord('K'): K := VK_UP;
     ord('L'): K := VK_RIGHT;
   end;
+
   D := 0; // 上下キーフラグ
   case K of
-     VK_RIGHT, VK_SPACE:
+    VK_RIGHT, VK_SPACE:
       // ディレクトリなら子を開く
       if (SelectedItem <> nil) and SelectedItem.IsDir then
       begin
         Timer1Timer(Self);
         if ChildForm.Count > 0 then
-        begin
           ChildForm.Select(0);
-          ChildForm.CaletIndex := 0;
-        end;
       end;
     VK_LEFT, VK_BACK: // 閉じて親に戻る
       if ParentForm <> nil then
@@ -804,6 +801,8 @@ begin
     VK_RETURN: Execute;
     VK_UP: D := -1;
     VK_DOWN: D := 1;
+    VK_HOME: Select(0);
+    VK_END: Select(Count - 1);
     ord('0')..ord('9'), ord('@')..ord('Z'):
       begin
         I := SelectedIndex;
@@ -830,7 +829,7 @@ begin
   // 上下キー
   if D = 0 then
     exit; // 上下キー以外はここでexit
-  if (SelectedIndex = -1) and (D <0) then
+  if (SelectedIndex = -1) and (D < 0) then
     I := Count
   else
     I := SelectedIndex;
@@ -839,10 +838,7 @@ begin
     I := I + D;
   until (not IsInRange(I)) or Items[I].Enabled;
   if IsInRange(I) then
-  begin
-    CaletIndex := I;
-    Select(CaletIndex);
-  end;
+    Select(I);
 end;
 
 end.
