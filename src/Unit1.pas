@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   AppEvnts,
-  // for get fileinfo and execute the file
+  // for get fileinfos and execute the file
   SHELLAPI,
   // for ".lnk"
   ActiveX, ComObj, ShlObj, ExtCtrls,
@@ -31,7 +31,7 @@ type
     Filename: WideString;
     IsDir: Boolean;
     LnkPath: WideString;
-    // list-item-info
+    // listItem info
     Index: Integer;
     Icon: HIcon;
     CaptionW: WideString;
@@ -324,7 +324,7 @@ begin
     ;
   end;
 
-  // Support high DIP
+  // Support high DPI
   Zoom := GetDpiZoom(Canvas);
   ICON_SIZE := Ceil(16 * Zoom);
   PADDING := Ceil(2 * Zoom);
@@ -354,7 +354,7 @@ var
   I, L, T, W, H: Integer;
   SwpFlags: Cardinal;
 begin
-  // Initialize
+  // initialize
   SelectedItem := nil;
   LastMousePoint := Point(-1, -1);
   ScrollBox1.AutoScroll := false;
@@ -373,7 +373,7 @@ begin
   for I := 0 to Count - 1 do
     DrawItem(Items[I]);
 
-  // Adjust position
+  // adjust position
   DoubleBuffered := true;
   ScrollBox1.DoubleBuffered := true;
   if (LT.Y + H) < Screen.Height then
@@ -394,11 +394,12 @@ begin
   if L < 0 then
     L := 0;
 
-  // Redraw
+  // redraw
   SetWindowPos(Handle, HWND_TOPMOST, L, T, W, H, SWP_NOACTIVATE);
   AlphaBlend := false;
   Refresh;
-  // Show
+
+  // show
   SwpFlags := SWP_SHOWWINDOW or SWP_NOSIZE or SWP_NOMOVE or SWP_NOZORDER;
   SetWindowPos(Handle, 0, 0, 0, 0, 0, SwpFlags);
   Visible := true;
