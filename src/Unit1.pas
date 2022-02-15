@@ -704,27 +704,22 @@ procedure TMainForm.Execute();
 var
   E: Integer;
   S: string;
-  W: PWideChar;
 begin
   if SelectedItem = nil then
     exit;
+  SetLastError(0);
   if ((GetAsyncKeyState(VK_RBUTTON) and 1) = 1) or (GetKeyState(VK_SHIFT) < 0) or (GetKeyState(VK_CONTROL) < 0) then
+    ShellExecuteW(0, nil, 'explorer.exe', PWideChar('/select,' + SelectedItem.FullPath), nil, SW_SHOWNORMAL)
+  else
+    // 64bitアプリへのlnkを開くときにProgram Files(x86)へリダイレクトされてしまうのでexeplorer.exe経由で実行する
+    // 第1引数が認識されない場合があるのでcmd.exe経由でexplorer.exeを実行する
+    ShellExecuteW(0, nil, 'cmd.exe', PWideChar('/c explorer.exe ' + SelectedItem.Filename), PWideChar(SelectedItem.Dir), SW_HIDE);
+  E := GetLastError;
+  if (E <> 0) and (E <> E_PENDING) then
   begin
-    W := PWideChar('/select,' + SelectedItem.FullPath);
-    ShellExecuteW(0, nil, 'explorer.exe', W, nil, SW_SHOWNORMAL)
-  end else
-  begin
-    SetLastError(0);
-    ShellExecuteW(0, '', PWideChar(SelectedItem.Filename), nil, PWideChar(SelectedItem.Dir), SW_SHOWNORMAL);
-    E := GetLastError;
-    if (E <> 0) and (E <> E_PENDING) then
-    begin
-      if SelectedItem.IsLnk and (E = ERROR_CANCELLED) then
-        E := ERROR_PATH_NOT_FOUND;
-      S := SysErrorMessage(E);
-      MessageBox(Handle, PChar(S), '', MB_ICONWARNING or MB_OK);
-      exit;
-    end;
+    S := SysErrorMessage(E);
+    MessageBox(Handle, PChar(S), '', MB_ICONWARNING or MB_OK);
+    exit;
   end;
   Application.Terminate;
 end;
