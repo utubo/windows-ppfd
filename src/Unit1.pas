@@ -5,13 +5,13 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   AppEvnts,
-  // ファイルの情報を取得とファイル実行
+  // for get fileinfo and execute the file
   SHELLAPI,
-  // ショートカットの情報を取得
+  // for ".lnk"
   ActiveX, ComObj, ShlObj, ExtCtrls,
-  // 表示関係
-  CommCtrl, // ImageList
-  // 高DPI対応
+  // for GUI
+  CommCtrl,
+  // for High DPI
   Math;
 
 const AW_ACTIVATE = $20000;
@@ -26,12 +26,12 @@ type
     function GetFullPath:WideString;
     function GetCount: Integer;
   public
-    // ファイル情報
+    // fileinfo
     Dir: WideString;
     Filename: WideString;
     IsDir: Boolean;
     LnkPath: WideString;
-    // リストアイテム情報
+    // list-item-info
     Index: Integer;
     Icon: HIcon;
     CaptionW: WideString;
@@ -44,7 +44,6 @@ type
     Bottom: Integer;
     BoundsWidth: Integer;
     BoundsHeight: Integer;
-    // リストアイテム更新情報
     IsListuped: boolean;
     property Count: Integer read GetCount;
     property FullPath:WideString read GetFullPath;
@@ -72,7 +71,6 @@ type
     procedure Image1MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure Timer1Timer(Sender: TObject);
   private
-    { Private 宣言 }
     ChildForm: TMainForm;
     FSelectedIndex: Integer;
     LastMousePoint: TPoint;
@@ -96,7 +94,6 @@ type
   protected
     procedure CreateParams(var Params: TCreateParams); override;
   public
-    { Public 宣言 }
     Root: TItem;
     procedure Start;
   end;
@@ -125,7 +122,7 @@ implementation
 {$R *.dfm}
 
 ///////////////////////////////////////
-// ユーティリティ
+// Utility
 ///////////////////////////////////////
 function StrngToColor(S:string; Default:TColor): TColor;
 begin
@@ -211,7 +208,7 @@ end;
 ///////////////////////////////////////
 // TMainForm
 ///////////////////////////////////////
-// プロパティ
+// Properties
 function TMainForm.GetItem(Index: Integer): TItem;
 begin
   Result := Root.Items[Index];
@@ -250,13 +247,13 @@ begin
   Result := FSelectedIndex;
 end;
 
-// アプリケーションイベント
+// Application events
 procedure TMainForm.ApplicationEvents1Deactivate(Sender: TObject);
 begin
   Close;
 end;
 
-// 開始
+// START HERE !
 procedure TMainForm.CreateParams(var Params: TCreateParams);
 begin
   inherited;
@@ -273,17 +270,17 @@ var
   Zoom: Extended;
 begin
   BusyCount := 0;
-  // コントロール押しながら起動
+  // starts with [SHFIT] key
   if (GetKeyState(VK_SHIFT) < 0) or (GetKeyState(VK_CONTROL) < 0) then
   begin
-    // カレントフォルダをエクスプローラで開く
+    // open the current folder.
     ShellExecuteW(0, '', PWideChar(GetCurrentDirW), nil, nil, SW_SHOWNORMAL);
     Application.Terminate;
     close;
   end;
 
   GetAsyncKeyState(VK_RBUTTON);
-  // 初期化
+  // Initialize
   HiFG := clHighlightText;
   HiBG := clHighlight;
   FG := clMenuText;
@@ -296,16 +293,16 @@ begin
   NCM.cbSize := SizeOf (NCM);
   SystemParametersInfo (SPI_GETNONCLIENTMETRICS, 0, @NCM, 0);
   Font.Name := NCM.lfMenuFont.lfFaceName;
-  // パラメータ受付
+  // Commandline parametrers
   For I := 1 to ParamCount do
   begin
     V := ParamStr(I);
-    // 単独オプション
+    // simple options
     if V = '/s' then
       ShouldOpenShellLink := false
     else if V = '/vi' then
       ViMode := true
-    // パラメータ付きオプション
+    // options with value
     else if Pos(V, ' /x /y /hifg /hibg /fg /bg /maxcount /prefix ') <> 0 then
       Opt := V
     else if Opt = '/x' then
@@ -327,7 +324,7 @@ begin
     ;
   end;
 
-  // 高DIP対応
+  // Support high DIP
   Zoom := GetDpiZoom(Canvas);
   ICON_SIZE := Ceil(16 * Zoom);
   PADDING := Ceil(2 * Zoom);
@@ -335,17 +332,19 @@ begin
   TEXT_LEFT := Ceil(24 * Zoom);
   MAX_WIDTH := Ceil(300 * Zoom);
 
-  // 準備
-  Width := 1; // Widthを0にすると影が付かない
+  // others
+  Width := 1; // Shadow is gone, when width is 0.
   Left := -1;
-  Show; // Showしとかないと一部のアイコンを読み込めない
-  // ファイル検索開始
+  Show; // for load icons.
+
+  // search files.
   Root := TItem.Create();
   Root.SetupItems(GetCurrentDirW);
-  // 表示
+
+  // POPUP !
   Popup(P, P);
 
-  // 表示準備してる間に他のアプリがアクティブになってたら終了させる
+  // cancel, when deactive
   if Focused and (FindControl(GetForegroundWindow) = nil) then
     Application.Terminate;
 end;
@@ -355,12 +354,12 @@ var
   I, L, T, W, H: Integer;
   SwpFlags: Cardinal;
 begin
-  // 初期化
+  // Initialize
   SelectedItem := nil;
   LastMousePoint := Point(-1, -1);
   ScrollBox1.AutoScroll := false;
 
-  // 描画
+  // calculate the height
   if ParentForm <> nil then
     Font := ParentForm.Font;
   Image1.Canvas.Font := Font;
@@ -369,16 +368,18 @@ begin
   Image1.Picture.Graphic.Height := Root.BoundsHeight;
   W := Image1.Width;
   H := Min(Image1.Height + BORDER_WIDTH * 2, Screen.Height);
+
+  // draw items to buffer
   for I := 0 to Count - 1 do
     DrawItem(Items[I]);
 
-  // 位置調整
+  // Adjust position
   DoubleBuffered := true;
   ScrollBox1.DoubleBuffered := true;
   if (LT.Y + H) < Screen.Height then
-    T := LT.Y // 収まるなら下へ表示
+    T := LT.Y // popup under the cursor
   else
-    T := RB.Y - H; // 収まらないなら上へ表示
+    T := RB.Y - H; // popup upper the cursor
   if T < 0 then
     T := 0;
   if T + H > Screen.Height then
@@ -393,11 +394,11 @@ begin
   if L < 0 then
     L := 0;
 
-  // 位置サイズ確定と再描画
+  // Redraw
   SetWindowPos(Handle, HWND_TOPMOST, L, T, W, H, SWP_NOACTIVATE);
   AlphaBlend := false;
   Refresh;
-  // 表示
+  // Show
   SwpFlags := SWP_SHOWWINDOW or SWP_NOSIZE or SWP_NOMOVE or SWP_NOZORDER;
   SetWindowPos(Handle, 0, 0, 0, 0, 0, SwpFlags);
   Visible := true;
@@ -415,7 +416,7 @@ begin
   end;
 end;
 
-// ファイル検索
+// Search Files
 procedure TItem.SetupItems(Dir: WideString; Filename: WideString = '*.*');
 var
   CurrDir: WideString;
@@ -455,7 +456,7 @@ begin
         continue;
       begin
         if Maxcount <= Self.Count then break;
-        // ファイル情報取得
+        // get the fileinfo
         Item := TItem.Create();
         Item.Index := I;
         Item.Top := I * ITEM_HEIGHT;
@@ -478,11 +479,11 @@ begin
           if PrefixPos <> 0 then
             Item.CaptionW := Copy(Item.CaptionW, PrefixPos + Length(Prefix), Length(Item.CaptionW));
           Item.Icon := ImageList_GetIcon(IconList, FileInfo.iIcon, ILD_TRANSPARENT);
-          ImageList_Destroy(IconList); // 後始末
-          // フォルダのショートカットならフォルダ扱いにする。
+          ImageList_Destroy(IconList);
+          // '.lnk' to a folder
           if ShouldOpenShellLink and (not Item.IsDir) and Item.IsLnk then
             SetupShellLinkInfo(Item);
-          // 幅
+          // calclate the width
           textRect := Rect(0, 0, 0, MainForm.Font.Size);
           DrawTextW(
             MainForm.Image1.Canvas.Handle,
@@ -494,8 +495,8 @@ begin
           Item.TextWidth := textRect.Right;
         end else
         begin
-          // セパレータ
-          Item.TextWidth := 50; // 最小幅
+          // sepalator
+          Item.TextWidth := 50; // minimum width
         end;
         if maxWidth < Item.TextWidth then
           maxWidth := Item.TextWidth;
@@ -513,7 +514,7 @@ begin
     Dec(BusyCount);
   end;
 
-  // 描画範囲
+  // calculate the rect
   Self.BoundsWidth := Min(maxWidth + TEXT_LEFT * 2, MAX_WIDTH);
   Self.BoundsHeight := Self.Count * ITEM_HEIGHT;
 end;
@@ -539,7 +540,7 @@ begin
   Item.IsDir := true;
 end;
 
-// メニュー項目描画
+// Draw a menu item
 procedure TMainForm.DrawItem(Item: TItem);
 var
   ACanvas: TCanvas;
@@ -550,7 +551,7 @@ begin
   ARect := Rect(0, Item.Top, Image1.Width, Item.Bottom);
   Middle := ARect.Top + ITEM_HEIGHT div 2;
 
-  // 色
+  // colors
   if Item.Selected and Item.Enabled then
   begin
     ACanvas.Brush.Color := HiBG;
@@ -564,7 +565,7 @@ begin
   ACanvas.Brush.Style := bsSolid;
   ACanvas.FillRect(ARect);
 
-  // セパレータ
+  // sepalator
   if not Item.Enabled then
   begin
     ACanvas.Pen.Color := clWindowFrame;
@@ -585,7 +586,7 @@ begin
     DI_IMAGE or DI_MASK
   );
 
-  // 文字
+  // caption
   TextRect := Rect(ARect.Left + TEXT_LEFT, ARect.Top, ARect.Right - PADDING, ARect.Bottom);
   if Item.IsDir then
     TextRect.Right := Arect.Right - TEXT_LEFT + 3;
@@ -596,7 +597,7 @@ begin
     DT_VCENTER or DT_SINGLELINE or DT_END_ELLIPSIS
   );
 
-  // ディレクトリ
+  // folder
   if Item.IsDir then
   begin
     ACanvas.PenPos := Point(ARect.Right - PADDING - 10 - 5, Middle - 5);
@@ -605,7 +606,7 @@ begin
   end;
 end;
 
-// 選択
+// select a item
 function TMainForm.Select(Index: Integer): Boolean;
 begin
   Result := false;
@@ -638,7 +639,7 @@ begin
   Result := true;
 end;
 
-// 子フォーム表示
+// Popup the child menu
 procedure TMainForm.ResetTimer(ReselectParent: Boolean);
 begin
   Timer1.Enabled := false;
@@ -699,7 +700,7 @@ begin
   end;
 end;
 
-// 実行
+// Execute the selected file
 procedure TMainForm.Execute();
 var
   E: Integer;
@@ -711,8 +712,8 @@ begin
   if ((GetAsyncKeyState(VK_RBUTTON) and 1) = 1) or (GetKeyState(VK_SHIFT) < 0) or (GetKeyState(VK_CONTROL) < 0) then
     ShellExecuteW(0, nil, 'explorer.exe', PWideChar('/select,' + SelectedItem.FullPath), nil, SW_SHOWNORMAL)
   else
-    // 64bitアプリへのlnkを開くときにProgram Files(x86)へリダイレクトされてしまうのでexeplorer.exe経由で実行する
-    // 第1引数が認識されない場合があるのでcmd.exe経由でexplorer.exeを実行する
+    // Execute with explorer.exe to prevent to redirect to 'Program Files(x86)'.
+    // Execute with cmd.exe, because parameter is ignored. (why...)
     ShellExecuteW(0, nil, 'cmd.exe', PWideChar('/c explorer.exe ' + SelectedItem.Filename), PWideChar(SelectedItem.Dir), SW_HIDE);
   E := GetLastError;
   if (E <> 0) and (E <> E_PENDING) then
@@ -724,7 +725,7 @@ begin
   Application.Terminate;
 end;
 
-// マウス操作
+// Mouse events
 procedure TMainForm.Image1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 var P: TPoint;
 begin
@@ -758,7 +759,7 @@ begin
   end;
 end;
 
-// キーボード操作
+// Keyboard events
 procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 function IsInRange(I: Integer): Boolean;
 begin
@@ -777,27 +778,29 @@ begin
     ord('L'): K := VK_RIGHT;
   end;
 
-  D := 0; // 上下キーフラグ
+  D := 0; // Up(=-1) or Down(=1)
+  
   case K of
+    VK_ESCAPE: Application.Terminate;
+    VK_RETURN: Execute;
+    VK_HOME:   Select(0);
+    VK_END:    Select(Count - 1);
+    VK_UP:     D := -1;
+    VK_DOWN:   D := 1;
     VK_RIGHT, VK_SPACE:
-      // ディレクトリなら子を開く
+      // popup child
       if (SelectedItem <> nil) and SelectedItem.IsDir then
       begin
         Timer1Timer(Self);
         if ChildForm.Count > 0 then
           ChildForm.Select(0);
       end;
-    VK_LEFT, VK_BACK: // 閉じて親に戻る
+    VK_LEFT, VK_BACK:
+      // close self and return parent.
       if ParentForm <> nil then
         ParentForm.HideChildForms
       else if Self = MainForm then
         D := - Count;
-    VK_ESCAPE: Application.Terminate;
-    VK_RETURN: Execute;
-    VK_UP: D := -1;
-    VK_DOWN: D := 1;
-    VK_HOME: Select(0);
-    VK_END: Select(Count - 1);
     ord('0')..ord('9'), ord('@')..ord('Z'):
       begin
         I := SelectedIndex;
@@ -821,14 +824,18 @@ begin
         end;
       end;
   end;
-  // 上下キー
+
+  // Up / Down
   if D = 0 then
-    exit; // 上下キー以外はここでexit
+    exit; // not Up or Down
+
+  // loop
   if (SelectedIndex = -1) and (D < 0) then
     I := Count
   else
     I := SelectedIndex;
-  // セパレータはスキップする
+
+  // move the cursor with skip the sepalator.
   repeat
     I := I + D;
   until (not IsInRange(I)) or Items[I].Enabled;
