@@ -607,7 +607,7 @@ begin
   end;
 end;
 
-// select a item
+// Select a menu item
 function TMainForm.Select(Index: Integer): Boolean;
 begin
   Result := false;
@@ -640,7 +640,7 @@ begin
   Result := true;
 end;
 
-// Popup the child menu
+// Popup a child menu
 procedure TMainForm.ResetTimer(ReselectParent: Boolean);
 begin
   Timer1.Enabled := false;
@@ -836,7 +836,7 @@ begin
   else
     I := SelectedIndex;
 
-  // move the cursor with skip the sepalator.
+  // move the cursor with skip sepalators.
   repeat
     I := I + D;
   until (not IsInRange(I)) or Items[I].Enabled;
