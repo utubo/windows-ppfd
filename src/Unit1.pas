@@ -19,6 +19,8 @@ const AW_BLEND = $80000;
 const INTERRUPTED_LISTUP = 'interrupted listup';
 const BORDER_WIDTH = 1;
 const SLR_NOSEARCH = $10;
+const SLR_NOTRACK = $20;
+const SLR_NOLINKINFO = $40;
 
 type
   TItem = class(TObject)
@@ -532,7 +534,7 @@ begin
     exit;
   SetLength(W, MAX_PATH);
   Win32FindData := @Win32FindDataW;
-  if ShellLink.Resolve(0, SLR_NO_UI + SLR_NOUPDATE + SLR_NOSEARCH) <> S_OK then
+  if ShellLink.Resolve(0, SLR_NO_UI + SLR_NOUPDATE + SLR_NOSEARCH + SLR_NOTRACK + SLR_NOLINKINFO) <> S_OK then
     exit;
   ShellLink.GetPath(PWideChar(W), MAX_PATH, Win32FindData^, SLGP_RAWPATH);
   if (Win32FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> FILE_ATTRIBUTE_DIRECTORY) then
