@@ -295,6 +295,7 @@ begin
   NCM.cbSize := SizeOf (NCM);
   SystemParametersInfo (SPI_GETNONCLIENTMETRICS, 0, @NCM, 0);
   Font.Name := NCM.lfMenuFont.lfFaceName;
+  Image1.Canvas.Font := Font;
   // Commandline parametrers
   For I := 1 to ParamCount do
   begin
@@ -427,9 +428,9 @@ var
   WFD : TWin32FindDataW;
   FileInfo :TSHFileinfoW;
   IconList: Cardinal;
-  I, maxWidth: Integer;
+  I, MaxWidth: Integer;
   Item: TItem;
-  textRect: TRect;
+  TextRect: TRect;
   PrefixPos: Integer;
 begin
   Self.IsListuped := False;
@@ -487,22 +488,22 @@ begin
           if ShouldOpenShellLink and (not Item.IsDir) and Item.IsLnk then
             SetupShellLinkInfo(Item);
           // calclate the width
-          textRect := Rect(0, 0, 0, MainForm.Font.Size);
+          TextRect := Rect(0, 0, 0, MainForm.Font.Size);
           DrawTextW(
             MainForm.Image1.Canvas.Handle,
             PWideChar(Item.CaptionW),
             Length(Item.CaptionW),
-            textRect,
+            TextRect,
             DT_VCENTER or DT_SINGLELINE or DT_CALCRECT
           );
-          Item.TextWidth := textRect.Right;
+          Item.TextWidth := TextRect.Right;
         end else
         begin
           // sepalator
           Item.TextWidth := 50; // minimum width
         end;
-        if maxWidth < Item.TextWidth then
-          maxWidth := Item.TextWidth;
+        if MaxWidth < Item.TextWidth then
+          MaxWidth := Item.TextWidth;
         SetLength(Self.Items, I + 1);
         Items[I] := Item;
         inc(I);
@@ -518,7 +519,7 @@ begin
   end;
 
   // calculate the rect
-  Self.BoundsWidth := Min(maxWidth + TEXT_LEFT * 2, MAX_WIDTH);
+  Self.BoundsWidth := Min(MaxWidth + TEXT_LEFT * 2, MAX_WIDTH);
   Self.BoundsHeight := Self.Count * ITEM_HEIGHT;
 end;
 
