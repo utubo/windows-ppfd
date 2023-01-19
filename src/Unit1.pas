@@ -476,7 +476,7 @@ begin
             0,
             FileInfo,
             SizeOf(FileInfo),
-            SHGFI_DISPLAYNAME OR SHGFI_ICON OR SHGFI_SMALLICON OR SHGFI_SYSICONINDEX
+            SHGFI_DISPLAYNAME OR SHGFI_SHELLICONSIZE OR SHGFI_SMALLICON OR SHGFI_SYSICONINDEX
           );
           Item.CaptionW := WideString(FileInfo.szDisplayName);
           PrefixPos := Pos(Prefix, Item.CaptionW);
