@@ -472,18 +472,18 @@ begin
         begin
           Item.IsDir := (WFD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY = FILE_ATTRIBUTE_DIRECTORY);
           IconList := SHGetFileInfoW(
-            PChar(Item.FileName),
+            PChar(Item.Filename),
             0,
             FileInfo,
             SizeOf(FileInfo),
-            SHGFI_DISPLAYNAME OR SHGFI_SHELLICONSIZE OR SHGFI_SMALLICON OR SHGFI_SYSICONINDEX
+            SHGFI_DISPLAYNAME or SHGFI_SMALLICON OR SHGFI_SYSICONINDEX
           );
           Item.CaptionW := WideString(FileInfo.szDisplayName);
           PrefixPos := Pos(Prefix, Item.CaptionW);
           if PrefixPos <> 0 then
             Item.CaptionW := Copy(Item.CaptionW, PrefixPos + Length(Prefix), Length(Item.CaptionW));
           Item.Icon := ImageList_GetIcon(IconList, FileInfo.iIcon, ILD_TRANSPARENT);
-          ImageList_Destroy(IconList);
+          //ImageList_Destroy(IconList); IconList is Readonly.
           // '.lnk' to a folder
           if ShouldOpenShellLink and (not Item.IsDir) and Item.IsLnk then
             SetupShellLinkInfo(Item);
