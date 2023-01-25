@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="128" height="128" viewBox="0 0 32 32">
-<g stroke="#909090" stroke-width="2" stroke-linejoin="round">
-<path fill="#ededed" d="M6.5 30h19v-27h-8l-2 3h-9z"/>
-<path stroke="#66aaee" d="M10 10h1v1h-1z"/><path d="M13 10.5h9"/>
-<path stroke="#aaee66" d="M10 15h1v1h-1z"/><path d="M13 15.5h9"/>
-<path stroke="#eeaa66" d="M10 20h1v1h-1z"/><path d="M13 20.5h9"/>
-<path stroke="#ee88aa" d="M10 25h1v1h-1z"/><path d="M13 25.5h9"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="64" height="64" viewBox="0 0 16 16">
+<g stroke="#909090" stroke-width="1" stroke-linejoin="round">
+<path fill="#ededed"   d="M2.5 15.5 h11v-15h-4l-1 1h-6z"/>
+<path stroke="#66aaee" d="M4.5  3.5 h1v1h-1z"/><path d="M6.5  4h5"/>
+<path stroke="#ee99aa" d="M4.5  6.5 h1v1h-1z"/><path d="M6.5  7h5"/>
+<path stroke="#eebb66" d="M4.5  9.5 h1v1h-1z"/><path d="M6.5 10h5"/>
+<path stroke="#bbee66" d="M4.5 12.5 h1v1h-1z"/><path d="M6.5 13h5"/>
 </g>
 </svg>
