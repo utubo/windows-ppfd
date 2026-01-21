@@ -1,7 +1,7 @@
 # ![icon](src/icon.svg)windows-ppfd
 popup the current folder.
 
-[more](http://utb.cs.land.to/ppfd/index.html)
+[more](https://utb.sakura.ne.jp/#apl_ppfd)
 
 ## build
 Build with Delphi 6 Personal (JP:CP932)
